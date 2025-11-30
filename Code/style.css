@@ -1,0 +1,174 @@
+@font-face {
+    font-family: 'VCR OSD Mono';
+    src: url('../Fonts/VCR_OSD_MONO_1.001.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* Basic Reset and Root Variables */
+:root {
+    /* Windows XP-like Colors */
+    --xp-blue: #235d9f;
+    --xp-green: #38b139;
+    --xp-taskbar-bg: #2259a4;
+    --xp-start-bg: #3292d3;
+
+    /* Desktop Colors */
+    --desktop-bg-light: #ffffff;
+    --desktop-bg-dark: #000000;
+    --icon-label-light: #000000;
+    --icon-label-dark: #ffffff;
+}
+
+body {
+    margin: 0;
+    font-family: 'VCR OSD Mono', 'Tahoma', 'Arial', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    font-size: 16px; 
+    /* *** Custom Cursor applied globally *** */
+    cursor: url('../Images/cursor for website.png') 10 0, auto; 
+}
+
+/* --- DESKTOP CONTAINER --- */
+#desktop {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    transition: background-color 0.3s;
+    position: relative; 
+}
+
+/* Light Mode Styles */
+.light-mode {
+    background-color: var(--desktop-bg-light);
+}
+
+.light-mode .icon .label {
+    color: var(--icon-label-light);
+    text-shadow: 1px 1px 0 #fff;
+}
+
+/* Dark Mode Styles */
+.dark-mode {
+    background-color: var(--desktop-bg-dark);
+}
+
+.dark-mode .icon .label {
+    color: var(--icon-label-dark);
+    text-shadow: 1px 1px 0 #000;
+}
+
+
+/* --- ICONS (Unchanged) --- */
+.icon-group {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 800px;
+    height: 400px;
+    display: grid;
+    grid-template-areas:
+        "folder-left app1 folder-right"
+        "spotify app2 ."
+    ;
+    gap: 40px;
+}
+
+.icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    text-align: center;
+    font-size: 18px; 
+    user-select: none;
+    padding: 10px;
+    /* *** UPDATED: Use custom cursor on hover/click areas *** */
+    cursor: url('../Images/cursor for website.png') 10 0, auto !important; 
+}
+
+.icon img {
+    width: 80px; 
+    height: 80px;
+    image-rendering: pixelated;
+    margin-bottom: 8px;
+}
+
+.icon.folder:nth-child(1) { grid-area: folder-left; justify-self: end; align-self: end; }
+.icon.app-icon.generic-app-1 { grid-area: app1; }
+.icon.folder:nth-child(5) { grid-area: folder-right; justify-self: start; align-self: end; }
+.icon.app-icon.spotify { grid-area: spotify; justify-self: end; }
+.icon.app-icon.apple-music { grid-area: app2; }
+
+
+/* --- TASKBAR (Unchanged) --- */
+#taskbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background-color: var(--xp-taskbar-bg);
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    border-top: 3px solid #a3b5ce; 
+    box-shadow: 0 -2px 0 #1b4984;
+}
+
+/* --- TOGGLE SWITCH STYLES --- */
+.mode-toggle {
+    width: 60px; 
+    height: 30px; 
+    padding: 3px 0; 
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    /* *** UPDATED: Use custom cursor on toggle click area *** */
+    cursor: url('../Images/cursor for website.png') 10 0, auto !important; 
+}
+
+/* Positioning for the Taskbar Toggle (RESTORED) */
+#mode-toggle-bottom {
+    margin-left: 20px; 
+}
+
+/* #mode-toggle-top rules REMOVED */
+
+.toggle-track {
+    width: 100%;
+    height: 100%;
+    background-color: var(--xp-blue);
+    border: 2px solid black; 
+    border-radius: 15px; 
+    box-shadow: inset 2px 2px 0 #00000050; 
+    position: relative;
+    transition: background-color 0.3s;
+}
+
+.toggle-handle {
+    width: 26px; 
+    height: 26px;
+    background-color: white;
+    border: 2px solid black; 
+    border-radius: 50%;
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    transition: transform 0.3s;
+}
+
+/* On/Dark Mode State for Switch */
+#desktop.dark-mode .mode-toggle .toggle-track {
+    background-color: var(--xp-green);
+}
+
+#desktop.dark-mode .mode-toggle .toggle-handle {
+    transform: translateX(28px); 
+}
