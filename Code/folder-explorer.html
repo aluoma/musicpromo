@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WHO_ARE_YOU_? mxtp_shoot</title>
+    <style>
+        /* FONT IMPORT (VCR OSD Mono) */
+        @font-face {
+            font-family: 'VCR OSD Mono';
+            src: url('../Fonts/VCR_OSD_MONO_1.001.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        :root {
+            --xp-taskbar-bg: #2259a4;
+            --xp-blue: #235d9f;
+            --xp-green: #38b139;
+            
+            /* Theme Colors for Folder Explorer */
+            --window-bg-light: #ffffff;
+            --window-bg-dark: #333333;
+            --content-bg-light: #ffffff;
+            --content-bg-dark: #1e1e1e;
+            --text-color-light: #000000;
+            --text-color-dark: #ffffff;
+            --border-color-light: #808080;
+            --border-color-dark: #000000;
+        }
+
+        body {
+            margin: 0;
+            background-color: #c0c0c0; /* Classic Windows gray background (desktop) */
+            font-family: 'VCR OSD Mono', sans-serif;
+            font-size: 16px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            
+            /* Window Frame */
+            border: 3px solid;
+            border-top-color: #ffffff;
+            border-left-color: #ffffff;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+            box-sizing: border-box;
+            transition: background-color 0.3s;
+            /* *** Custom Cursor (Ensure the new window uses it) *** */
+            cursor: url('../Images/cursor for website.png') 10 0, auto; 
+        }
+
+        /* --- THEME MODES --- */
+
+        /* Light Mode Defaults (applied to body content) */
+        .window-content {
+            background-color: var(--content-bg-light);
+            color: var(--text-color-light);
+            border-top-color: var(--border-color-light);
+        }
+        .image-icon .label {
+            color: var(--text-color-light);
+        }
+
+        /* Dark Mode */
+        body.dark-mode {
+            background-color: var(--window-bg-dark); /* Dark gray window frame */
+        }
+        .dark-mode .window-content {
+            background-color: var(--content-bg-dark);
+            color: var(--text-color-dark);
+            border-top-color: var(--border-color-dark);
+        }
+        .dark-mode .image-icon .label {
+            color: var(--text-color-dark);
+        }
+        .dark-mode .back-link {
+            color: #ffcc00;
+        }
+        .dark-mode .back-link:hover {
+            color: #ffffff;
+        }
+
+        /* Title Bar */
+        .window-title-bar {
+            height: 30px;
+            background-color: var(--xp-taskbar-bg);
+            color: white;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            cursor: default;
+            box-shadow: 0 1px 0 #808080;
+            flex-shrink: 0; 
+        }
+
+        /* Back Link */
+        .back-link {
+            color: #ffffff;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 14px;
+            transition: color 0.1s;
+            margin-right: 10px; /* Space between link and title */
+            /* *** UPDATED: Use custom cursor on click areas *** */
+            cursor: url('../Images/cursor for website.png') 10 0, auto !important; 
+        }
+
+        .back-link:hover {
+            color: #ffcc00;
+        }
+
+        .window-title-group {
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Dark Mode Toggle Styles (Copied from Desktop) */
+        .mode-toggle {
+            width: 60px; 
+            height: 30px; 
+            padding: 3px 0; 
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            margin-left: auto; /* Push to the right */
+            /* *** UPDATED: Use custom cursor on toggle click area *** */
+            cursor: url('../Images/cursor for website.png') 10 0, auto !important; 
+        }
+        
+        .toggle-track {
+            width: 100%;
+            height: 100%;
+            background-color: var(--xp-blue);
+            border: 2px solid black; 
+            border-radius: 15px; 
+            box-shadow: inset 2px 2px 0 #00000050; 
+            position: relative;
+            transition: background-color 0.3s;
+        }
+
+        .toggle-handle {
+            width: 26px; 
+            height: 26px;
+            background-color: white;
+            border: 2px solid black; 
+            border-radius: 50%;
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            transition: transform 0.3s;
+        }
+
+        /* Dark Mode State for Switch */
+        body.dark-mode .mode-toggle .toggle-track {
+            background-color: var(--xp-green);
+        }
+
+        body.dark-mode .mode-toggle .toggle-handle {
+            transform: translateX(28px); 
+        }
+        /* End Dark Mode Toggle Styles */
+
+
+        /* Content Area */
+        .window-content {
+            flex-grow: 1;
+            padding: 10px;
+            overflow-y: auto;
+            border-top: 2px solid var(--border-color-light); 
+        }
+
+        /* Image Explorer specific styles */
+        .image-explorer {
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 20px;
+        }
+
+        .image-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 100px;
+            cursor: pointer;
+            user-select: none;
+            padding: 5px;
+            /* *** UPDATED: Use custom cursor on click areas *** */
+            cursor: url('../Images/cursor for website.png') 10 0, auto !important; 
+        }
+
+        .image-icon img {
+            width: 90px;
+            height: 90px;
+            object-fit: cover;
+            border: 1px solid var(--border-color-dark);
+            margin-bottom: 5px;
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+        }
+        
+        /* Font styles */
+        .window-title-bar, .image-icon .label {
+            font-family: 'VCR OSD Mono', sans-serif;
+            font-size: 16px;
+        }
+
+        /* --- LIGHTBOX STYLES --- */
+        #lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+        
+        #lightbox.hidden {
+            display: none; 
+            opacity: 0;
+        }
+
+        #lightbox-content {
+            max-width: 90%;
+            max-height: 90%;
+            position: relative;
+        }
+
+        #lightbox-image {
+            display: block;
+            width: auto;
+            max-width: 100%;
+            max-height: 100vh;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            object-fit: contain;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="light-mode">
+
+    <div class="window-title-bar">
+        <div class="window-title-group">
+            <div id="back-link" class="back-link">< Close</div>
+            <div class="window-title">WHO_ARE_YOU_? mxtp_shoot</div>
+        </div>
+        
+        <!-- TOP RIGHT MODE TOGGLE -->
+        <div id="mode-toggle" class="mode-toggle"> 
+            <div class="toggle-track">
+                <div class="toggle-handle"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="window-content image-explorer">
+        <div class="image-icon" data-image="Cover 1.png">
+            <img src="../WHO ARE YOU Images/Cover 1.png" alt="Cover 1 Thumbnail">
+            <span class="label">Cover 1.png</span>
+        </div>
+        <div class="image-icon" data-image="Cover 2.png">
+            <img src="../WHO ARE YOU Images/Cover 2.png" alt="Cover 2 Thumbnail">
+            <span class="label">Cover 2.png</span>
+        </div>
+        <div class="image-icon" data-image="Cover 3.png">
+            <img src="../WHO ARE YOU Images/Cover 3.png" alt="Cover 3 Thumbnail">
+            <span class="label">Cover 3.png</span>
+        </div>
+        <div class="image-icon" data-image="Cover 4.png">
+            <img src="../WHO ARE YOU Images/Cover 4.png" alt="Cover 4 Thumbnail">
+            <span class="label">Cover 4.png</span>
+        </div>
+        <div class="image-icon" data-image="Cover 5.png">
+            <img src="../WHO ARE YOU Images/Cover 5.png" alt="Cover 5 Thumbnail">
+            <span class="label">Cover 5.png</span>
+        </div>
+    </div>
+
+    <div id="lightbox" class="hidden">
+        <div id="lightbox-content">
+            <img id="lightbox-image" src="" alt="Zoomed Image">
+        </div>
+    </div>
+    
+    <script>
+        // New position for anti-right-click logic, ensuring it loads before DOMContentLoaded.
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            console.log("Right-click disabled to protect content in the explorer window.");
+        });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const body = document.body;
+            const toggle = document.getElementById('mode-toggle');
+            const backLink = document.getElementById('back-link');
+            const imageIcons = document.querySelectorAll('.image-icon');
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImage = document.getElementById('lightbox-image');
+
+            // --- Theme Logic ---
+            function switchMode(newMode) {
+                body.className = newMode;
+                // *** Using 'currentMode' key for consistency ***
+                localStorage.setItem('currentMode', newMode); 
+
+                // Update image borders based on mode for better visibility
+                const borderValue = newMode === 'dark-mode' ? '1px solid #ffffff' : '1px solid #000000';
+                imageIcons.forEach(icon => {
+                    icon.querySelector('img').style.border = borderValue;
+                });
+            }
+            
+            function applySavedMode() {
+                // *** Reading 'currentMode' key for consistency ***
+                const savedMode = localStorage.getItem('currentMode') || 'light-mode';
+                switchMode(savedMode);
+            }
+
+            // Apply saved mode on load
+            applySavedMode();
+
+            // Click listener for the dark mode toggle
+            toggle.addEventListener('click', () => {
+                if (body.classList.contains('light-mode')) {
+                    switchMode('dark-mode');
+                } else {
+                    switchMode('light-mode');
+                }
+            });
+            
+            // Click listener for the back link
+            backLink.addEventListener('click', () => {
+                window.close();
+            });
+
+            // --- Lightbox Logic (Unchanged) ---
+            function showLightbox(imageSrc) {
+                // The imageSrc from the icon will already be the correctly updated path
+                lightboxImage.src = imageSrc; 
+                lightbox.classList.remove('hidden');
+            }
+
+            // Click listener for all image icons: opens the lightbox
+            imageIcons.forEach(icon => {
+                icon.addEventListener('click', () => {
+                    const imageSrc = icon.querySelector('img').src;
+                    showLightbox(imageSrc);
+                });
+            });
+
+            // Click listener on the lightbox itself: closes the lightbox
+            lightbox.addEventListener('click', () => {
+                lightbox.classList.add('hidden');
+                setTimeout(() => {
+                    lightboxImage.src = ''; 
+                }, 300);
+            });
+        });
+    </script>
+</body>
+</html>
