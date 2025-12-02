@@ -34,12 +34,9 @@ body {
 #desktop {
     width: 100vw;
     height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
+    display: block; /* Change from flex to block to allow absolute positioning */
     transition: background-color 0.3s;
-    position: relative; 
+    position: relative; /* Essential for absolute icon children */
 }
 
 /* Light Mode Styles */
@@ -51,6 +48,11 @@ body {
     color: var(--icon-label-light);
     text-shadow: 1px 1px 0 #fff;
 }
+/* Drag handle color for light mode */
+.light-mode .drag-handle {
+    background-color: #333;
+    border: 2px solid #fff;
+}
 
 /* Dark Mode Styles */
 .dark-mode {
@@ -61,23 +63,14 @@ body {
     color: var(--icon-label-dark);
     text-shadow: 1px 1px 0 #000;
 }
-
-
-/* --- ICONS (Unchanged) --- */
-.icon-group {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 800px;
-    height: 400px;
-    display: grid;
-    grid-template-areas:
-        "folder-left app1 folder-right"
-        "spotify app2 ."
-    ;
-    gap: 40px;
+/* Drag handle color for dark mode */
+.dark-mode .drag-handle {
+    background-color: #ccc;
+    border: 2px solid #000;
 }
+
+
+/* --- ICONS (Modified for Dragging) --- */
 
 .icon {
     display: flex;
@@ -88,8 +81,18 @@ body {
     font-size: 18px; 
     user-select: none;
     padding: 10px;
+    /* Essential for dragging: set to absolute */
+    position: absolute; 
+    width: 100px; /* Give it a fixed width for consistent collision detection */
+    /* Add subtle shadow on drag */
+    transition: box-shadow 0.1s ease;
     /* *** UPDATED: Use custom cursor on hover/click areas *** */
     cursor: url('../Images/cursor for website.png') 10 0, auto !important; 
+}
+
+.icon.dragging {
+    z-index: 1000;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 .icon img {
@@ -99,12 +102,36 @@ body {
     margin-bottom: 8px;
 }
 
-.icon.folder:nth-child(1) { grid-area: folder-left; justify-self: end; align-self: end; }
-.icon.app-icon.generic-app-1 { grid-area: app1; }
-.icon.folder:nth-child(5) { grid-area: folder-right; justify-self: start; align-self: end; }
-.icon.app-icon.spotify { grid-area: spotify; justify-self: end; }
-.icon.app-icon.apple-music { grid-area: app2; }
+/* --- DRAG HANDLE HITBOX (Wrapper) --- */
+/* This is the large, invisible area the user clicks to start dragging */
+.drag-handle-area {
+    /* Increase the size of the clickable area */
+    width: 40px; 
+    height: 40px;
+    
+    /* Position the area in the center beneath the label */
+    margin-top: 5px; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    /* Use the 'grab' cursor on the entire hitbox area */
+    cursor: grab;
+    
+    /* Prevent the area from initiating a double-click on the icon */
+    pointer-events: all;
+}
 
+
+/* --- DRAG HANDLE VISUAL DOT --- */
+/* This is the small visual dot kept inside the larger hitbox area */
+.drag-handle {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    /* Remove previous margin, as it's now centered by the wrapper */
+    flex-shrink: 0; 
+}
 
 /* --- TASKBAR (Unchanged) --- */
 #taskbar {
@@ -119,9 +146,10 @@ body {
     padding: 0 15px;
     border-top: 3px solid #a3b5ce; 
     box-shadow: 0 -2px 0 #1b4984;
+    z-index: 2000; /* Ensure taskbar is always on top */
 }
 
-/* --- TOGGLE SWITCH STYLES --- */
+/* --- TOGGLE SWITCH STYLES (Unchanged) --- */
 .mode-toggle {
     width: 60px; 
     height: 30px; 
@@ -138,8 +166,6 @@ body {
 #mode-toggle-bottom {
     margin-left: 20px; 
 }
-
-/* #mode-toggle-top rules REMOVED */
 
 .toggle-track {
     width: 100%;
