@@ -243,7 +243,7 @@ body {
 }
 
 .cover-item {
-    width: 110px;
+    width: 55px;
 }
 
 .cover-img {
@@ -363,4 +363,5 @@ body {
     transform: translateX(28px); 
 
 }
+
 
