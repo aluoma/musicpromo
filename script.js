@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const iconLinks = {
         'Spotify': 'https://open.spotify.com/artist/5JD93roKnQecDffPmlzF0Q?si=IxrFkZrRS36iwbRP3bYvBQ',
         'Apple Music': 'https://music.apple.com/ca/artist/aluoma/1790001361',
-        'App 1': 'https://tidal.com/artist/53250905/u'
+        'App 1': 'https://tidal.com/artist/53250905'
     };
 
     // --- Dragging State Variables (for Icons) ---
@@ -325,4 +325,5 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
 });
