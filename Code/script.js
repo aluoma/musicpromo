@@ -1,4 +1,4 @@
-// New position for anti-right-click logic, ensuring it loads before DOMContentLoaded.
+// Anti-right-click logic
 document.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     console.log("Right-click disabled to protect content.");
@@ -8,28 +8,43 @@ document.addEventListener('DOMContentLoaded', () => {
     const desktop = document.getElementById('desktop');
     const toggles = document.querySelectorAll('.mode-toggle'); 
     const icons = document.querySelectorAll('.icon');
+    const folderWindow = document.getElementById('folder-window'); 
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImage = document.getElementById('lightbox-image');
+
     const iconLinks = {
         'Spotify': 'https://open.spotify.com/artist/5JD93roKnQecDffPmlzF0Q?si=IxrFkZrRS36iwbRP3bYvBQ',
         'Apple Music': 'https://music.apple.com/ca/artist/aluoma/1790001361',
         'App 1': 'https://tidal.com/artist/53250905/u'
     };
 
-    // --- Dragging State Variables ---
+    // --- Dragging State Variables (for Icons) ---
     let activeDrag = null;
     let initialX;
     let initialY;
     let xOffset = 0;
     let yOffset = 0;
     let isDragging = false;
-    const DRAG_THRESHOLD = 5; // Minimum pixel movement to register as a drag
+    const DRAG_THRESHOLD = 5; 
+    
+    // --- Window Dragging State Variables ---
+    let windowDragActive = false;
+    let windowInitialX, windowInitialY;
+    let windowOffsetX, windowOffsetY;
 
     // --- Persistence Functions ---
+    // NOTE: Using a placeholder implementation for the required __app_id variable
+    function getAppId() {
+        return typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    }
+
     function loadIconPositions() {
+        const appId = getAppId();
         icons.forEach(icon => {
             const label = icon.dataset.label;
-            const savedPosition = localStorage.getItem(`iconPos_${label}`);
+            const storageKey = `iconPos_${appId}_${label}`;
+            const savedPosition = localStorage.getItem(storageKey);
             if (savedPosition) {
-                // If a saved position exists, apply it (overwriting the HTML default)
                 try {
                     const { top, left } = JSON.parse(savedPosition);
                     icon.style.top = top + 'px';
@@ -38,22 +53,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error("Failed to parse saved icon position:", e);
                 }
             }
-            // IMPORTANT: If savedPosition is NULL, we do nothing, allowing the 
-            // inline style in index.html to set the default position.
         });
     }
 
     function saveIconPosition(icon) {
         const label = icon.dataset.label;
-        // Use offsetTop and offsetLeft for current rendered position
         const top = icon.offsetTop;
         const left = icon.offsetLeft;
-        localStorage.setItem(`iconPos_${label}`, JSON.stringify({ top, left }));
+        const appId = getAppId(); 
+        const storageKey = `iconPos_${appId}_${label}`;
+        localStorage.setItem(storageKey, JSON.stringify({ top, left }));
     }
 
-    // --- Dragging Handlers (Combined Mouse/Touch) ---
-    
-    // Get cursor/touch position
+    // --- Utility: Get cursor/touch position ---
     function getClientCoords(e) {
         if (e.touches) {
             return { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -61,39 +73,37 @@ document.addEventListener('DOMContentLoaded', () => {
         return { x: e.clientX, y: e.clientY };
     }
 
+    // -------------------------------------------------------------------------
+    // --- ICON Dragging Logic (Updated for full icon drag) ---
+    // -------------------------------------------------------------------------
     function dragStart(e) {
-        // Only start drag on left mouse button (0) or touch
+        // Allow only left-click for mouse or any touch
         if (e.type === "mousedown" && e.button !== 0) return;
         
-        // *** MODIFIED: Check if the click originated on the drag handle AREA (the hitbox) ***
-        const handleArea = e.target.closest('.drag-handle-area');
-        if (!handleArea) return; // Only proceed if the drag hitbox was clicked
-
-        const icon = handleArea.closest('.icon');
+        const icon = e.target.closest('.icon');
         if (!icon) return;
 
-        // Prevent default for touch events to stop scrolling/zooming
+        // Prevent drag from starting if clicking inside the folder window
+        if (folderWindow.style.display !== 'none' && e.target.closest('.app-window')) return;
+
         if (e.type === "touchstart") {
             e.preventDefault();
         }
 
         activeDrag = icon;
         activeDrag.classList.add('dragging');
+        desktop.classList.add('show-grid'); // Show grid feedback
 
         const iconRect = activeDrag.getBoundingClientRect();
         const coords = getClientCoords(e);
 
-        // Calculate offset (where the mouse/touch hit the icon's handle, relative to the icon's top-left corner)
+        // Calculate offset from click point to the icon's top-left corner
         xOffset = coords.x - iconRect.left;
         yOffset = coords.y - iconRect.top;
-
-        // Save initial coordinates to detect if it was a drag or just a click
         initialX = coords.x;
         initialY = coords.y;
-
-        isDragging = false; // Reset drag flag
+        isDragging = false; 
         
-        // Attach listeners to the document
         document.addEventListener('mousemove', drag, { passive: false });
         document.addEventListener('mouseup', dragEnd);
         document.addEventListener('touchmove', drag, { passive: false });
@@ -102,36 +112,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drag(e) {
         if (!activeDrag) return;
-        e.preventDefault(); // Prevent text selection/native dragging
+        e.preventDefault(); 
         
         const coords = getClientCoords(e);
-        
         const currentX = coords.x;
         const currentY = coords.y;
 
-        // Check if movement exceeds the threshold
+        // Determine if movement exceeds threshold to be considered a drag
         if (Math.abs(currentX - initialX) > DRAG_THRESHOLD || Math.abs(currentY - initialY) > DRAG_THRESHOLD) {
             isDragging = true;
         }
 
-        // Calculate new position
         let newX = currentX - xOffset;
         let newY = currentY - yOffset;
         
-        // --- Boundary Checks ---
+        // Bounding box logic
         const taskbarHeight = document.getElementById('taskbar').offsetHeight;
         const desktopRect = desktop.getBoundingClientRect();
         const iconWidth = activeDrag.offsetWidth;
         const iconHeight = activeDrag.offsetHeight;
         
-        // X-axis bounds
-        newX = Math.max(0, newX); // Left boundary
-        newX = Math.min(desktopRect.width - iconWidth, newX); // Right boundary
+        // Clamp X position
+        newX = Math.max(0, newX); 
+        newX = Math.min(desktopRect.width - iconWidth, newX); 
 
-        // Y-axis bounds (must stay above the taskbar)
-        newY = Math.max(0, newY); // Top boundary
-        newY = Math.min(desktopRect.height - taskbarHeight - iconHeight, newY); // Bottom boundary
-        // --- End Boundary Checks ---
+        // Clamp Y position (respecting taskbar)
+        newY = Math.max(0, newY); 
+        newY = Math.min(desktopRect.height - taskbarHeight - iconHeight, newY); 
 
         activeDrag.style.left = newX + 'px';
         activeDrag.style.top = newY + 'px';
@@ -141,76 +148,175 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!activeDrag) return;
 
         activeDrag.classList.remove('dragging');
+        desktop.classList.remove('show-grid'); // Hide grid feedback
         
-        // If it was a drag (moved more than threshold), save the position
         if (isDragging) {
             saveIconPosition(activeDrag);
         }
 
         activeDrag = null;
-        // isDragging remains true until the dblclick check or reset
         
-        // Remove listeners from the document
         document.removeEventListener('mousemove', drag);
         document.removeEventListener('mouseup', dragEnd);
         document.removeEventListener('touchmove', drag);
         document.removeEventListener('touchend', dragEnd);
     }
     
-    // Attach drag start listeners to the icon's drag handle area
+    // Attach drag listeners directly to the icons
     icons.forEach(icon => {
-        const handleArea = icon.querySelector('.drag-handle-area');
-        if (handleArea) {
-            handleArea.addEventListener('mousedown', dragStart);
-            handleArea.addEventListener('touchstart', dragStart, { passive: false });
-        }
+        icon.addEventListener('mousedown', dragStart);
+        icon.addEventListener('touchstart', dragStart, { passive: false });
     });
+
+
+    // -------------------------------------------------------------------------
+    // --- WINDOW Dragging Logic ---
+    // -------------------------------------------------------------------------
+
+    function startWindowDrag(e) {
+        const windowHeader = e.target.closest('.window-header');
+        if (!windowHeader || e.button !== 0) return; 
+
+        e.preventDefault();
+        windowDragActive = true;
+        
+        const coords = getClientCoords(e);
+        windowInitialX = coords.x;
+        windowInitialY = coords.y;
+        
+        windowOffsetX = coords.x - folderWindow.getBoundingClientRect().left;
+        windowOffsetY = coords.y - folderWindow.getBoundingClientRect().top;
+
+        document.addEventListener('mousemove', dragWindow);
+        document.addEventListener('mouseup', endWindowDrag);
+        document.addEventListener('touchmove', dragWindow, { passive: false });
+        document.addEventListener('touchend', endWindowDrag);
+
+        folderWindow.style.transition = 'none'; 
+    }
+
+    function dragWindow(e) {
+        if (!windowDragActive) return;
+
+        e.preventDefault();
+        const coords = getClientCoords(e);
+
+        let newX = coords.x - windowOffsetX;
+        let newY = coords.y - windowOffsetY;
+
+        folderWindow.style.left = newX + 'px';
+        folderWindow.style.top = newY + 'px';
+        folderWindow.style.transform = 'none'; 
+    }
+
+    function endWindowDrag() {
+        if (!windowDragActive) return;
+
+        windowDragActive = false;
+        folderWindow.style.transition = ''; 
+
+        document.removeEventListener('mousemove', dragWindow);
+        document.removeEventListener('mouseup', endWindowDrag);
+        document.removeEventListener('touchmove', dragWindow);
+        document.removeEventListener('touchend', endWindowDrag);
+    }
     
-    // --- App Launch Logic ---
+    // -------------------------------------------------------------------------
+    // --- WINDOW Control Logic ---
+    // -------------------------------------------------------------------------
+    function closeWindow() {
+        folderWindow.style.display = 'none';
+    }
+    
+    if (folderWindow) {
+        const header = folderWindow.querySelector('.window-header');
+        if (header) {
+            header.addEventListener('mousedown', startWindowDrag);
+            header.addEventListener('touchstart', startWindowDrag, { passive: false });
+        }
+        folderWindow.querySelector('.close-btn').addEventListener('click', closeWindow);
+    }
+
+    // -------------------------------------------------------------------------
+    // --- LIGHTBOX Logic ---
+    // -------------------------------------------------------------------------
+    function showLightbox(imageSrc) {
+        lightboxImage.src = imageSrc;
+        lightbox.classList.remove('hidden');
+    }
+
+    const coverImages = document.querySelectorAll('.cover-img');
+    coverImages.forEach(img => {
+        img.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            showLightbox(img.src);
+        });
+    });
+
+    // Close lightbox on click
+    lightbox.addEventListener('click', () => {
+        lightbox.classList.add('hidden');
+        setTimeout(() => {
+            lightboxImage.src = ''; 
+        }, 300);
+    });
+
+    // -------------------------------------------------------------------------
+    // --- App Launch Logic (Uses single click with drag check) ---
+    // -------------------------------------------------------------------------
     icons.forEach(icon => {
-        icon.addEventListener('dblclick', (e) => {
-            // *** UPDATED: Check if the click originated on the drag handle area
-            if (e.target.closest('.drag-handle-area')) {
-                return;
-            }
-            
-            // Check if the double-click was preceded by a drag motion
+        icon.addEventListener('click', (e) => {
+            // If dragging just finished, prevent the click action
             if (isDragging) {
-                isDragging = false; // Reset the flag
-                return; // Suppress double-click if it was a drag
+                isDragging = false; 
+                return; 
             }
             
             const label = icon.dataset.label;
             const url = iconLinks[label];
 
             if (label === 'WHO_ARE_YOU_? mxtp_shoot') {
-                window.open(
-                    'folder-explorer.html', 
-                    'FolderWindow', 
-                    'width=700,height=500,scrollbars=yes,resizable=yes'
-                );
+                folderWindow.style.display = 'flex';
+                folderWindow.style.zIndex = 1001; 
+                
+                // Ensure folder window position is centered if first time opening or off-screen
+                const windowRect = folderWindow.getBoundingClientRect();
+                if (windowRect.top < 0 || windowRect.left < 0 || windowRect.bottom > desktop.clientHeight || windowRect.right > desktop.clientWidth) {
+                    folderWindow.style.top = '50%';
+                    folderWindow.style.left = '50%';
+                    folderWindow.style.transform = 'translate(-50%, -50%)';
+                }
+
             } else if (url) {
                 window.open(url, '_blank');
             } else {
-                console.log(`Attempting to open folder: ${label}`);
+                console.log(`Attempting to open generic folder/app: ${label}`);
             }
+        });
+
+        // Prevent double-click from firing after single click delay
+        icon.addEventListener('dblclick', (e) => {
+             e.preventDefault();
         });
     });
     
-    // --- Dark/Light Mode Core Logic (Unchanged) ---
+    // --- Dark/Light Mode Core Logic ---
     function switchMode(newMode) {
         desktop.className = '';
         desktop.classList.add(newMode);
-        localStorage.setItem('currentMode', newMode); 
+        const appId = getAppId(); 
+        localStorage.setItem(`currentMode_${appId}`, newMode); 
     }
     
     function applySavedMode() {
-        const savedMode = localStorage.getItem('currentMode') || 'light-mode';
+        const appId = getAppId(); 
+        const savedMode = localStorage.getItem(`currentMode_${appId}`) || 'light-mode';
         switchMode(savedMode);
+        // Sync the toggle state visually if needed (not strictly required since the toggle is clickable)
     }
 
     applySavedMode();
-    loadIconPositions(); // Load positions after theme to ensure correct background/contrast
+    loadIconPositions(); 
     
     toggles.forEach(toggle => {
         toggle.addEventListener('click', () => {
@@ -221,5 +327,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-    
 });
