@@ -291,8 +291,10 @@ body {
 #lightbox-image {
     display: block;
     width: auto;
-    max-width: 100%;
-    max-height: 100vh;
+    /* CHANGE THESE LINES */
+    max-width: 80%; /* Was 100% */
+    max-height: 80vh; /* Was 100vh */
+    /* ------------------ */
     box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
     object-fit: contain;
     cursor: pointer;
