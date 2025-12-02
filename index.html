@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Desktop</title>
+    <link rel="stylesheet" href="style.css"> 
+</head>
+<body>
+
+    <div id="desktop" class="light-mode">
+        
+        <div class="icon folder" data-label="WHO_ARE_YOU_? mxtp_shoot" style="top: 200px; left: 650px;">
+            <img src="../Images/folder-icon.png" alt="Folder Icon">
+            <span class="label">WHO_ARE_YOU_? mxtp_shoot</span>
+        </div>
+
+        <div class="icon app-icon spotify" data-label="Spotify" style="top: 400px; left: 450px;">
+            <img src="../Images/spotify-icon.png" alt="Spotify Icon">
+        </div>
+
+        <div class="icon app-icon generic-app-1" data-label="App 1" style="top: 400px; left: 650px;">
+            <img src="../Images/dark-app-icon.png" alt="Dark App Icon">
+        </div>
+
+        <div class="icon app-icon apple-music" data-label="Apple Music" style="top: 400px; left: 550px;">
+            <img src="../Images/apple-music-icon.png" alt="Apple Music Icon">
+        </div>
+
+        <div class="icon folder" data-label="???" style="top: 550px; left: 650px;">
+            <img src="../Images/folder-icon.png" alt="Folder Icon">
+            <span class="label">???</span>
+        </div>
+
+        <div id="taskbar">
+            <div id="mode-toggle-bottom" class="mode-toggle">
+                <div class="toggle-track">
+                    <div class="toggle-handle"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="folder-window" class="app-window" style="display: none;">
+            <div class="window-header">
+                <span class="window-title">WHO_ARE_YOU_? mxtp_shoot</span>
+                <div class="window-controls">
+                    <button class="control-button close-btn" title="Close">×</button>
+                </div>
+            </div>
+            <div class="window-content">
+                <div class="file-list cover-grid">
+                    <div class="file-item cover-item">
+                        <img src="../WHO ARE YOU Images/Cover 1.png" alt="Cover 1" class="cover-img">
+                        <span class="file-name">Cover 1.png</span>
+                    </div>
+                    <div class="file-item cover-item">
+                        <img src="../WHO ARE YOU Images/Cover 2.png" alt="Cover 2" class="cover-img">
+                        <span class="file-name">Cover 2.png</span>
+                    </div>
+                    <div class="file-item cover-item">
+                        <img src="../WHO ARE YOU Images/Cover 3.png" alt="Cover 3" class="cover-img">
+                        <span class="file-name">Cover 3.png</span>
+                    </div>
+                    <div class="file-item cover-item">
+                        <img src="../WHO ARE YOU Images/Cover 4.png" alt="Cover 4" class="cover-img">
+                        <span class="file-name">Cover 4.png</span>
+                    </div>
+                    <div class="file-item cover-item">
+                        <img src="../WHO ARE YOU Images/Cover 5.png" alt="Cover 5" class="cover-img">
+                        <span class="file-name">Cover 5.png</span>
+                    </div>
+                </div>
+                <hr>
+                <p class="status-bar">5 Items<br>86.1 MB</p>
+            </div>
+        </div>
+
+    </div>
+    
+    <div id="lightbox" class="hidden">
+        <div id="lightbox-content">
+            <img id="lightbox-image" src="" alt="Zoomed Image">
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
