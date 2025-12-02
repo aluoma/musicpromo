@@ -12,6 +12,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const lightbox = document.getElementById('lightbox');
     const lightboxImage = document.getElementById('lightbox-image');
 
+    // --- NEW LIGHTBOX ELEMENTS ---
+    const zoomInBtn = document.getElementById('zoom-in');
+    const zoomOutBtn = document.getElementById('zoom-out');
+    const zoomLevelSpan = document.getElementById('zoom-level');
+    const navPrevBtn = document.getElementById('nav-prev');
+    const navNextBtn = document.getElementById('nav-next');
+    
+    // --- NEW LIGHTBOX STATE ---
+    let currentZoom = 100; // Start at 100%
+    const ZOOM_STEP = 25;
+    let coverImages = []; // Array to hold image elements for navigation
+    let currentImageIndex = -1; // Index of the currently displayed image
+
     const iconLinks = {
         'Spotify': 'https://open.spotify.com/artist/5JD93roKnQecDffPmlzF0Q?si=IxrFkZrRS36iwbRP3bYvBQ',
         'Apple Music': 'https://music.apple.com/ca/artist/aluoma/1790001361',
@@ -236,28 +249,106 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // -------------------------------------------------------------------------
-    // --- LIGHTBOX Logic ---
+    // --- LIGHTBOX Logic (Updated for Zoom and Navigation) ---
     // -------------------------------------------------------------------------
-    function showLightbox(imageSrc) {
-        lightboxImage.src = imageSrc;
-        lightbox.classList.remove('hidden');
+
+    function applyZoom() {
+        // Set the new scale factor based on the current zoom percentage
+        lightboxImage.style.transform = `scale(${currentZoom / 100})`;
+        zoomLevelSpan.textContent = `${currentZoom}%`;
+        
+        // Optional: Disable zoom buttons at min/max levels
+        zoomOutBtn.disabled = (currentZoom <= ZOOM_STEP);
+        zoomInBtn.disabled = (currentZoom >= 200); // Max zoom set to 200%
     }
 
-    const coverImages = document.querySelectorAll('.cover-img');
-    coverImages.forEach(img => {
+    function zoom(direction) {
+        const newZoom = currentZoom + (direction * ZOOM_STEP);
+        // Clamp the zoom level between a minimum (e.g., 25%) and maximum (e.g., 200%)
+        if (newZoom >= ZOOM_STEP && newZoom <= 200) {
+            currentZoom = newZoom;
+            applyZoom();
+        }
+    }
+
+    function navigate(direction) {
+        // Only navigate if we have images loaded
+        if (coverImages.length === 0) return;
+        
+        let newIndex = currentImageIndex + direction;
+        
+        // Wrap around navigation
+        if (newIndex < 0) {
+            newIndex = coverImages.length - 1;
+        } else if (newIndex >= coverImages.length) {
+            newIndex = 0;
+        }
+
+        // Only proceed if there's a valid index
+        if (newIndex >= 0 && newIndex < coverImages.length) {
+            currentImageIndex = newIndex;
+            const newImageSrc = coverImages[currentImageIndex].src;
+            lightboxImage.src = newImageSrc;
+            
+            // Reset zoom when changing image
+            currentZoom = 100;
+            applyZoom();
+        }
+    }
+
+    function showLightbox(imageElement, index) {
+        currentImageIndex = index;
+        currentZoom = 100; // Reset zoom for new image
+        
+        lightboxImage.src = imageElement.src;
+        applyZoom(); // Apply the reset zoom state
+        
+        lightbox.classList.remove('hidden');
+    }
+    
+    // Collect all cover images once DOM is loaded
+    // This must happen after the elements are guaranteed to be in the DOM
+    coverImages = Array.from(document.querySelectorAll('.cover-img'));
+    
+    coverImages.forEach((img, index) => {
         img.addEventListener('click', (e) => {
             e.stopPropagation(); 
-            showLightbox(img.src);
+            showLightbox(img, index);
         });
     });
 
-    // Close lightbox on click
-    lightbox.addEventListener('click', () => {
-        lightbox.classList.add('hidden');
-        setTimeout(() => {
-            lightboxImage.src = ''; 
-        }, 300);
+    // Attach zoom event listeners
+    if (zoomInBtn && zoomOutBtn) {
+        zoomInBtn.addEventListener('click', () => zoom(1)); // 1 for zoom in
+        zoomOutBtn.addEventListener('click', () => zoom(-1)); // -1 for zoom out
+    }
+    
+    // Attach navigation event listeners
+    if (navPrevBtn && navNextBtn) {
+        navPrevBtn.addEventListener('click', (e) => { 
+            e.stopPropagation(); // Prevent closing lightbox
+            navigate(-1); 
+        });
+        navNextBtn.addEventListener('click', (e) => { 
+            e.stopPropagation(); // Prevent closing lightbox
+            navigate(1); 
+        });
+    }
+
+
+    // Close lightbox on click, but ensure we don't close when clicking controls or image
+    lightbox.addEventListener('click', (e) => {
+        // Check if the click target is the lightbox background itself
+        if (e.target.id === 'lightbox') {
+            lightbox.classList.add('hidden');
+            setTimeout(() => {
+                lightboxImage.src = ''; 
+                lightboxImage.style.transform = 'none'; // Clean up transform
+            }, 300);
+        }
+        // Note: Clicking lightbox-content (which holds the image/arrows) will NOT close it now.
     });
+
 
     // -------------------------------------------------------------------------
     // --- App Launch Logic (Uses single click with drag check) ---

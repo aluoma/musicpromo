@@ -260,7 +260,7 @@ body {
 }
 
 
-/* --- LIGHTBOX STYLES --- */
+/* --- LIGHTBOX STYLES (Adjusted) --- */
 #lightbox {
     position: fixed;
     top: 0;
@@ -271,6 +271,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-direction: column; /* Allows image and controls to stack */
+    padding: 20px;
     z-index: 9999;
     opacity: 1;
     transition: opacity 0.3s;
@@ -286,19 +288,103 @@ body {
     max-width: 90%;
     max-height: 90%;
     position: relative;
+    display: flex; /* To position arrows next to the image */
+    align-items: center;
+    justify-content: center;
+    /* Important: Must allow clicking through to nav buttons */
+    pointer-events: none; 
 }
+#lightbox-content > * {
+    pointer-events: all; /* Re-enable pointer events for children */
+}
+
 
 #lightbox-image {
     display: block;
     width: auto;
-    /* CHANGE THESE LINES */
-    max-width: 80%; /* Was 100% */
-    max-height: 80vh; /* Was 100vh */
-    /* ------------------ */
+    max-width: 100%;
+    max-height: 100vh;
     box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
     object-fit: contain;
-    cursor: pointer;
+    transition: transform 0.2s ease-out; /* Smooth zoom transition */
+    cursor: pointer; 
     cursor: url('../Images/cursor for website.png') 10 0, auto !important; 
+}
+
+/* --- LIGHTBOX NAVIGATION ARROWS --- */
+.lightbox-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    padding: 15px;
+    font-size: 30px;
+    cursor: pointer;
+    z-index: 10000;
+    user-select: none;
+    transition: background 0.2s;
+    line-height: 0.5;
+}
+
+.lightbox-nav-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+#nav-prev {
+    left: -60px; /* Position outside the main content block */
+}
+
+#nav-next {
+    right: -60px; /* Position outside the main content block */
+}
+
+/* --- LIGHTBOX ZOOM CONTROLS --- */
+#lightbox-controls {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 8px 15px;
+    border-radius: 5px;
+    z-index: 10000;
+}
+
+.zoom-btn {
+    background: #444;
+    color: white;
+    border: 1px solid #777;
+    width: 30px;
+    height: 30px;
+    font-size: 20px;
+    cursor: pointer;
+    transition: background 0.2s;
+    line-height: 1;
+    margin: 0 5px;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.zoom-btn:hover:not(:disabled) {
+    background: #666;
+}
+
+.zoom-btn:disabled {
+    background: #222;
+    cursor: default;
+    color: #888;
+}
+
+#zoom-level {
+    color: white;
+    font-size: 16px;
+    font-family: 'VCR OSD Mono', sans-serif;
+    padding: 0 10px;
+    min-width: 50px;
+    text-align: center;
 }
 
 
@@ -365,5 +451,3 @@ body {
     transform: translateX(28px); 
 
 }
-
-
