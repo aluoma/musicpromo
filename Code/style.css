@@ -21,10 +21,10 @@
     --icon-label-light: #000000;
     --icon-label-dark: #ffffff;
     
-    /* Grid Colors for drag feedback */
+    /* Grid variables kept for reference but not used in visual display */
     --grid-color-light: rgba(0, 0, 0, 0.1);
     --grid-color-dark: rgba(255, 255, 255, 0.1);
-    --grid-size: 100px; /* Snapping/visual grid size */
+    --grid-size: 100px; 
 }
 
 body {
@@ -47,21 +47,7 @@ body {
 }
 
 /* --- GRID OVERLAY (Visual Feedback on Drag) --- */
-/* Light mode grid: Black/dark gray lines */
-.light-mode.show-grid {
-    background-image: 
-        repeating-linear-gradient(to right, transparent, transparent 99px, var(--grid-color-light) 100px),
-        repeating-linear-gradient(to bottom, transparent, transparent 99px, var(--grid-color-light) 100px);
-    background-size: var(--grid-size) var(--grid-size);
-}
-
-/* Dark mode grid: White/light gray lines */
-.dark-mode.show-grid {
-    background-image: 
-        repeating-linear-gradient(to right, transparent, transparent 99px, var(--grid-color-dark) 100px),
-        repeating-linear-gradient(to bottom, transparent, transparent 99px, var(--grid-color-dark) 100px);
-    background-size: var(--grid-size) var(--grid-size);
-}
+/* This section was removed */
 
 /* Light Mode Styles */
 .light-mode {

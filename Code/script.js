@@ -92,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         activeDrag = icon;
         activeDrag.classList.add('dragging');
-        desktop.classList.add('show-grid'); // Show grid feedback
 
         const iconRect = activeDrag.getBoundingClientRect();
         const coords = getClientCoords(e);
@@ -148,7 +147,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!activeDrag) return;
 
         activeDrag.classList.remove('dragging');
-        desktop.classList.remove('show-grid'); // Hide grid feedback
         
         if (isDragging) {
             saveIconPosition(activeDrag);
