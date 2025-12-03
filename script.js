@@ -39,6 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let yOffset = 0;
     let isDragging = false;
     const DRAG_THRESHOLD = 5; 
+    // --- Touch / Long-press state for mobile dragging ---
+    let touchTimer = null;
+    let touchInitialX = 0;
+    let touchInitialY = 0;
+    const TOUCH_LONGPRESS_MS = 300;
+    const TOUCH_MOVE_THRESHOLD = 10;
     
     // --- Window Dragging State Variables ---
     let windowDragActive = false;
@@ -173,11 +179,88 @@ document.addEventListener('DOMContentLoaded', () => {
         document.removeEventListener('touchend', dragEnd);
     }
     
-    // Attach drag listeners directly to the icons
-    icons.forEach(icon => {
-        icon.addEventListener('mousedown', dragStart);
-        icon.addEventListener('touchstart', dragStart, { passive: false });
+    // Attach drag listeners directly to the icons. On phones we use a
+    // long-press gesture to initiate dragging so normal taps and scroll
+    // gestures are preserved.
+    function updateForMobileLayout() {
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        if (isMobile) {
+            desktop.classList.add('mobile-layout');
+            icons.forEach(icon => {
+                icon.removeEventListener('mousedown', dragStart);
+                icon.removeEventListener('touchstart', dragStart);
+                // Add long-press handlers for touch drag start
+                icon.removeEventListener('touchstart', touchIconStart);
+                icon.removeEventListener('touchmove', touchIconMove);
+                icon.removeEventListener('touchend', touchIconEnd);
+
+                icon.addEventListener('touchstart', touchIconStart, { passive: false });
+                icon.addEventListener('touchmove', touchIconMove, { passive: false });
+                icon.addEventListener('touchend', touchIconEnd);
+                // Ensure the icon is not left with dragging cursor state
+                icon.classList.remove('dragging');
+            });
+        } else {
+            desktop.classList.remove('mobile-layout');
+            icons.forEach(icon => {
+                // Use passive: false for touchstart so we can prevent default inside dragStart
+                icon.removeEventListener('mousedown', dragStart);
+                icon.removeEventListener('touchstart', dragStart);
+                icon.removeEventListener('touchstart', touchIconStart);
+                icon.removeEventListener('touchmove', touchIconMove);
+                icon.removeEventListener('touchend', touchIconEnd);
+                icon.addEventListener('mousedown', dragStart);
+                icon.addEventListener('touchstart', dragStart, { passive: false });
+            });
+        }
+    }
+
+    // Initialize mobile/desktop layout and update on resize/orientation change
+    updateForMobileLayout();
+    window.addEventListener('resize', () => {
+        // small debounce-ish behavior
+        clearTimeout(window._mobileLayoutTimer);
+        window._mobileLayoutTimer = setTimeout(updateForMobileLayout, 150);
     });
+
+    // --- Touch long-press handlers for icons (start/track/cancel) ---
+    function touchIconStart(e) {
+        if (!e.touches || e.touches.length > 1) return;
+        const icon = e.target.closest('.icon');
+        if (!icon) return;
+
+        touchInitialX = e.touches[0].clientX;
+        touchInitialY = e.touches[0].clientY;
+
+        // Clear any previous timer
+        if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
+
+        // Start a long-press timer to begin drag
+        touchTimer = setTimeout(() => {
+            touchTimer = null;
+            // Re-use existing dragStart logic which handles touchstart events
+            try { dragStart(e); } catch (err) { console.error(err); }
+        }, TOUCH_LONGPRESS_MS);
+    }
+
+    function touchIconMove(e) {
+        if (!touchTimer || !e.touches || e.touches.length > 1) return;
+        const moveX = e.touches[0].clientX;
+        const moveY = e.touches[0].clientY;
+        if (Math.abs(moveX - touchInitialX) > TOUCH_MOVE_THRESHOLD || Math.abs(moveY - touchInitialY) > TOUCH_MOVE_THRESHOLD) {
+            // User is scrolling / moving finger — cancel long-press
+            clearTimeout(touchTimer);
+            touchTimer = null;
+        }
+    }
+
+    function touchIconEnd(e) {
+        if (touchTimer) {
+            clearTimeout(touchTimer);
+            touchTimer = null;
+        }
+        // If we were actively dragging, let dragEnd handle cleanup via touchend bound in dragStart
+    }
 
 
     // -------------------------------------------------------------------------
@@ -186,7 +269,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function startWindowDrag(e) {
         const windowHeader = e.target.closest('.window-header');
-        if (!windowHeader || e.button !== 0) return; 
+        // Allow mousedown left-button or touch events (touchstart)
+        if (!windowHeader || (e.type === 'mousedown' && e.button !== 0)) return; 
 
         e.preventDefault();
         windowDragActive = true;
@@ -242,8 +326,43 @@ document.addEventListener('DOMContentLoaded', () => {
     if (folderWindow) {
         const header = folderWindow.querySelector('.window-header');
         if (header) {
+            // Desktop mouse drag
             header.addEventListener('mousedown', startWindowDrag);
-            header.addEventListener('touchstart', startWindowDrag, { passive: false });
+
+            // Mobile: use long-press to initiate window drag to avoid interfering with scrolling
+            let headerTouchTimer = null;
+            let headerStartX = 0;
+            let headerStartY = 0;
+
+            function headerTouchStart(e) {
+                if (!e.touches || e.touches.length > 1) return;
+                headerStartX = e.touches[0].clientX;
+                headerStartY = e.touches[0].clientY;
+                if (headerTouchTimer) { clearTimeout(headerTouchTimer); headerTouchTimer = null; }
+                headerTouchTimer = setTimeout(() => {
+                    headerTouchTimer = null;
+                    // start window drag using the original touch event
+                    startWindowDrag(e);
+                }, TOUCH_LONGPRESS_MS);
+            }
+
+            function headerTouchMove(e) {
+                if (!headerTouchTimer || !e.touches || e.touches.length > 1) return;
+                const mx = e.touches[0].clientX;
+                const my = e.touches[0].clientY;
+                if (Math.abs(mx - headerStartX) > TOUCH_MOVE_THRESHOLD || Math.abs(my - headerStartY) > TOUCH_MOVE_THRESHOLD) {
+                    clearTimeout(headerTouchTimer);
+                    headerTouchTimer = null;
+                }
+            }
+
+            function headerTouchEnd(e) {
+                if (headerTouchTimer) { clearTimeout(headerTouchTimer); headerTouchTimer = null; }
+            }
+
+            header.addEventListener('touchstart', headerTouchStart, { passive: false });
+            header.addEventListener('touchmove', headerTouchMove, { passive: false });
+            header.addEventListener('touchend', headerTouchEnd);
         }
         folderWindow.querySelector('.close-btn').addEventListener('click', closeWindow);
     }
