@@ -8,7 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const desktop = document.getElementById('desktop');
     const toggles = document.querySelectorAll('.mode-toggle'); 
     const icons = document.querySelectorAll('.icon');
-    const folderWindow = document.getElementById('folder-window'); 
+    const folderWindow = document.getElementById('folder-window');
+    const promoWindow = document.getElementById('promo-window');
     const lightbox = document.getElementById('lightbox');
     const lightboxImage = document.getElementById('lightbox-image');
 
@@ -50,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let windowDragActive = false;
     let windowInitialX, windowInitialY;
     let windowOffsetX, windowOffsetY;
+    let activeWindow = null;
 
     // --- Persistence Functions ---
     // NOTE: Using a placeholder implementation for the required __app_id variable
@@ -275,23 +277,27 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         windowDragActive = true;
         
+        // Find which window is being dragged
+        activeWindow = windowHeader.closest('.app-window');
+        if (!activeWindow) return;
+        
         const coords = getClientCoords(e);
         windowInitialX = coords.x;
         windowInitialY = coords.y;
         
-        windowOffsetX = coords.x - folderWindow.getBoundingClientRect().left;
-        windowOffsetY = coords.y - folderWindow.getBoundingClientRect().top;
+        windowOffsetX = coords.x - activeWindow.getBoundingClientRect().left;
+        windowOffsetY = coords.y - activeWindow.getBoundingClientRect().top;
 
         document.addEventListener('mousemove', dragWindow);
         document.addEventListener('mouseup', endWindowDrag);
         document.addEventListener('touchmove', dragWindow, { passive: false });
         document.addEventListener('touchend', endWindowDrag);
 
-        folderWindow.style.transition = 'none'; 
+        activeWindow.style.transition = 'none'; 
     }
 
     function dragWindow(e) {
-        if (!windowDragActive) return;
+        if (!windowDragActive || !activeWindow) return;
 
         e.preventDefault();
         const coords = getClientCoords(e);
@@ -299,16 +305,19 @@ document.addEventListener('DOMContentLoaded', () => {
         let newX = coords.x - windowOffsetX;
         let newY = coords.y - windowOffsetY;
 
-        folderWindow.style.left = newX + 'px';
-        folderWindow.style.top = newY + 'px';
-        folderWindow.style.transform = 'none'; 
+        activeWindow.style.left = newX + 'px';
+        activeWindow.style.top = newY + 'px';
+        activeWindow.style.transform = 'none'; 
     }
 
     function endWindowDrag() {
         if (!windowDragActive) return;
 
         windowDragActive = false;
-        folderWindow.style.transition = ''; 
+        if (activeWindow) {
+            activeWindow.style.transition = ''; 
+            activeWindow = null;
+        }
 
         document.removeEventListener('mousemove', dragWindow);
         document.removeEventListener('mouseup', endWindowDrag);
@@ -319,8 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // -------------------------------------------------------------------------
     // --- WINDOW Control Logic ---
     // -------------------------------------------------------------------------
-    function closeWindow() {
-        folderWindow.style.display = 'none';
+    function closeWindow(windowElement) {
+        windowElement.style.display = 'none';
     }
     
     if (folderWindow) {
@@ -364,7 +373,51 @@ document.addEventListener('DOMContentLoaded', () => {
             header.addEventListener('touchmove', headerTouchMove, { passive: false });
             header.addEventListener('touchend', headerTouchEnd);
         }
-        folderWindow.querySelector('.close-btn').addEventListener('click', closeWindow);
+        folderWindow.querySelector('.close-btn').addEventListener('click', () => closeWindow(folderWindow));
+    }
+
+    if (promoWindow) {
+        const header = promoWindow.querySelector('.window-header');
+        if (header) {
+            // Desktop mouse drag
+            header.addEventListener('mousedown', startWindowDrag);
+
+            // Mobile: use long-press to initiate window drag to avoid interfering with scrolling
+            let headerTouchTimer = null;
+            let headerStartX = 0;
+            let headerStartY = 0;
+
+            function headerTouchStart(e) {
+                if (!e.touches || e.touches.length > 1) return;
+                headerStartX = e.touches[0].clientX;
+                headerStartY = e.touches[0].clientY;
+                if (headerTouchTimer) { clearTimeout(headerTouchTimer); headerTouchTimer = null; }
+                headerTouchTimer = setTimeout(() => {
+                    headerTouchTimer = null;
+                    // start window drag using the original touch event
+                    startWindowDrag(e);
+                }, TOUCH_LONGPRESS_MS);
+            }
+
+            function headerTouchMove(e) {
+                if (!headerTouchTimer || !e.touches || e.touches.length > 1) return;
+                const mx = e.touches[0].clientX;
+                const my = e.touches[0].clientY;
+                if (Math.abs(mx - headerStartX) > TOUCH_MOVE_THRESHOLD || Math.abs(my - headerStartY) > TOUCH_MOVE_THRESHOLD) {
+                    clearTimeout(headerTouchTimer);
+                    headerTouchTimer = null;
+                }
+            }
+
+            function headerTouchEnd(e) {
+                if (headerTouchTimer) { clearTimeout(headerTouchTimer); headerTouchTimer = null; }
+            }
+
+            header.addEventListener('touchstart', headerTouchStart, { passive: false });
+            header.addEventListener('touchmove', headerTouchMove, { passive: false });
+            header.addEventListener('touchend', headerTouchEnd);
+        }
+        promoWindow.querySelector('.close-btn').addEventListener('click', () => closeWindow(promoWindow));
     }
 
     // -------------------------------------------------------------------------
@@ -428,6 +481,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Collect all cover images once DOM is loaded
     // This must happen after the elements are guaranteed to be in the DOM
     coverImages = Array.from(document.querySelectorAll('.cover-img'));
+    
+    // Also include the promo image if available
+    const promoImg = document.querySelector('.promo-img');
+    if (promoImg) {
+        coverImages.push(promoImg);
+    }
     
     coverImages.forEach((img, index) => {
         img.addEventListener('click', (e) => {
@@ -493,6 +552,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     folderWindow.style.top = '50%';
                     folderWindow.style.left = '50%';
                     folderWindow.style.transform = 'translate(-50%, -50%)';
+                }
+
+            } else if (label === '???') {
+                promoWindow.style.display = 'flex';
+                promoWindow.style.zIndex = 1001; 
+                
+                // Ensure promo window position is centered if first time opening or off-screen
+                const windowRect = promoWindow.getBoundingClientRect();
+                if (windowRect.top < 0 || windowRect.left < 0 || windowRect.bottom > desktop.clientHeight || windowRect.right > desktop.clientWidth) {
+                    promoWindow.style.top = '50%';
+                    promoWindow.style.left = '50%';
+                    promoWindow.style.transform = 'translate(-50%, -50%)';
                 }
 
             } else if (url) {
