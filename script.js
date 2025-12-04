@@ -1,4 +1,3 @@
-// Anti-right-click logic
 document.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     console.log("Right-click disabled to protect content.");
@@ -13,18 +12,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const lightbox = document.getElementById('lightbox');
     const lightboxImage = document.getElementById('lightbox-image');
 
-    // --- NEW LIGHTBOX ELEMENTS ---
     const zoomInBtn = document.getElementById('zoom-in');
     const zoomOutBtn = document.getElementById('zoom-out');
     const zoomLevelSpan = document.getElementById('zoom-level');
     const navPrevBtn = document.getElementById('nav-prev');
     const navNextBtn = document.getElementById('nav-next');
-    
-    // --- NEW LIGHTBOX STATE ---
-    let currentZoom = 100; // Start at 100%
+    let currentZoom = 100;
     const ZOOM_STEP = 25;
-    let coverImages = []; // Array to hold image elements for navigation
-    let currentImageIndex = -1; // Index of the currently displayed image
+    let coverImages = [];
+    let promoImages = [];
+    let currentImageIndex = -1;
+    let currentImageSet = null;
 
     const iconLinks = {
         'Spotify': 'https://open.spotify.com/artist/5JD93roKnQecDffPmlzF0Q?si=IxrFkZrRS36iwbRP3bYvBQ',
@@ -32,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'App 1': 'https://tidal.com/artist/53250905'
     };
 
-    // --- Dragging State Variables (for Icons) ---
     let activeDrag = null;
     let initialX;
     let initialY;
@@ -40,21 +37,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let yOffset = 0;
     let isDragging = false;
     const DRAG_THRESHOLD = 5; 
-    // --- Touch / Long-press state for mobile dragging ---
     let touchTimer = null;
     let touchInitialX = 0;
     let touchInitialY = 0;
     const TOUCH_LONGPRESS_MS = 300;
     const TOUCH_MOVE_THRESHOLD = 10;
     
-    // --- Window Dragging State Variables ---
     let windowDragActive = false;
     let windowInitialX, windowInitialY;
     let windowOffsetX, windowOffsetY;
     let activeWindow = null;
 
-    // --- Persistence Functions ---
-    // NOTE: Using a placeholder implementation for the required __app_id variable
     function getAppId() {
         return typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
     }
@@ -86,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem(storageKey, JSON.stringify({ top, left }));
     }
 
-    // --- Utility: Get cursor/touch position ---
     function getClientCoords(e) {
         if (e.touches) {
             return { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -94,17 +86,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return { x: e.clientX, y: e.clientY };
     }
 
-    // -------------------------------------------------------------------------
-    // --- ICON Dragging Logic (Updated for full icon drag) ---
-    // -------------------------------------------------------------------------
     function dragStart(e) {
-        // Allow only left-click for mouse or any touch
         if (e.type === "mousedown" && e.button !== 0) return;
         
         const icon = e.target.closest('.icon');
         if (!icon) return;
 
-        // Prevent drag from starting if clicking inside the folder window
         if (folderWindow.style.display !== 'none' && e.target.closest('.app-window')) return;
 
         if (e.type === "touchstart") {
@@ -117,7 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const iconRect = activeDrag.getBoundingClientRect();
         const coords = getClientCoords(e);
 
-        // Calculate offset from click point to the icon's top-left corner
         xOffset = coords.x - iconRect.left;
         yOffset = coords.y - iconRect.top;
         initialX = coords.x;
@@ -138,7 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentX = coords.x;
         const currentY = coords.y;
 
-        // Determine if movement exceeds threshold to be considered a drag
         if (Math.abs(currentX - initialX) > DRAG_THRESHOLD || Math.abs(currentY - initialY) > DRAG_THRESHOLD) {
             isDragging = true;
         }
@@ -146,17 +131,14 @@ document.addEventListener('DOMContentLoaded', () => {
         let newX = currentX - xOffset;
         let newY = currentY - yOffset;
         
-        // Bounding box logic
         const taskbarHeight = document.getElementById('taskbar').offsetHeight;
         const desktopRect = desktop.getBoundingClientRect();
         const iconWidth = activeDrag.offsetWidth;
         const iconHeight = activeDrag.offsetHeight;
         
-        // Clamp X position
         newX = Math.max(0, newX); 
         newX = Math.min(desktopRect.width - iconWidth, newX); 
 
-        // Clamp Y position (respecting taskbar)
         newY = Math.max(0, newY); 
         newY = Math.min(desktopRect.height - taskbarHeight - iconHeight, newY); 
 
@@ -181,9 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.removeEventListener('touchend', dragEnd);
     }
     
-    // Attach drag listeners directly to the icons. On phones we use a
-    // long-press gesture to initiate dragging so normal taps and scroll
-    // gestures are preserved.
     function updateForMobileLayout() {
         const isMobile = window.matchMedia('(max-width: 768px)').matches;
         if (isMobile) {
@@ -191,7 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
             icons.forEach(icon => {
                 icon.removeEventListener('mousedown', dragStart);
                 icon.removeEventListener('touchstart', dragStart);
-                // Add long-press handlers for touch drag start
                 icon.removeEventListener('touchstart', touchIconStart);
                 icon.removeEventListener('touchmove', touchIconMove);
                 icon.removeEventListener('touchend', touchIconEnd);
@@ -199,13 +177,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 icon.addEventListener('touchstart', touchIconStart, { passive: false });
                 icon.addEventListener('touchmove', touchIconMove, { passive: false });
                 icon.addEventListener('touchend', touchIconEnd);
-                // Ensure the icon is not left with dragging cursor state
                 icon.classList.remove('dragging');
             });
         } else {
             desktop.classList.remove('mobile-layout');
             icons.forEach(icon => {
-                // Use passive: false for touchstart so we can prevent default inside dragStart
                 icon.removeEventListener('mousedown', dragStart);
                 icon.removeEventListener('touchstart', dragStart);
                 icon.removeEventListener('touchstart', touchIconStart);
@@ -217,15 +193,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Initialize mobile/desktop layout and update on resize/orientation change
     updateForMobileLayout();
     window.addEventListener('resize', () => {
-        // small debounce-ish behavior
         clearTimeout(window._mobileLayoutTimer);
         window._mobileLayoutTimer = setTimeout(updateForMobileLayout, 150);
     });
 
-    // --- Touch long-press handlers for icons (start/track/cancel) ---
     function touchIconStart(e) {
         if (!e.touches || e.touches.length > 1) return;
         const icon = e.target.closest('.icon');
@@ -234,13 +207,10 @@ document.addEventListener('DOMContentLoaded', () => {
         touchInitialX = e.touches[0].clientX;
         touchInitialY = e.touches[0].clientY;
 
-        // Clear any previous timer
         if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
 
-        // Start a long-press timer to begin drag
         touchTimer = setTimeout(() => {
             touchTimer = null;
-            // Re-use existing dragStart logic which handles touchstart events
             try { dragStart(e); } catch (err) { console.error(err); }
         }, TOUCH_LONGPRESS_MS);
     }
@@ -250,7 +220,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const moveX = e.touches[0].clientX;
         const moveY = e.touches[0].clientY;
         if (Math.abs(moveX - touchInitialX) > TOUCH_MOVE_THRESHOLD || Math.abs(moveY - touchInitialY) > TOUCH_MOVE_THRESHOLD) {
-            // User is scrolling / moving finger — cancel long-press
             clearTimeout(touchTimer);
             touchTimer = null;
         }
@@ -261,23 +230,15 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(touchTimer);
             touchTimer = null;
         }
-        // If we were actively dragging, let dragEnd handle cleanup via touchend bound in dragStart
     }
-
-
-    // -------------------------------------------------------------------------
-    // --- WINDOW Dragging Logic ---
-    // -------------------------------------------------------------------------
 
     function startWindowDrag(e) {
         const windowHeader = e.target.closest('.window-header');
-        // Allow mousedown left-button or touch events (touchstart)
         if (!windowHeader || (e.type === 'mousedown' && e.button !== 0)) return; 
 
         e.preventDefault();
         windowDragActive = true;
         
-        // Find which window is being dragged
         activeWindow = windowHeader.closest('.app-window');
         if (!activeWindow) return;
         
@@ -325,9 +286,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.removeEventListener('touchend', endWindowDrag);
     }
     
-    // -------------------------------------------------------------------------
-    // --- WINDOW Control Logic ---
-    // -------------------------------------------------------------------------
     function closeWindow(windowElement) {
         windowElement.style.display = 'none';
     }
@@ -335,10 +293,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (folderWindow) {
         const header = folderWindow.querySelector('.window-header');
         if (header) {
-            // Desktop mouse drag
             header.addEventListener('mousedown', startWindowDrag);
 
-            // Mobile: use long-press to initiate window drag to avoid interfering with scrolling
             let headerTouchTimer = null;
             let headerStartX = 0;
             let headerStartY = 0;
@@ -350,7 +306,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (headerTouchTimer) { clearTimeout(headerTouchTimer); headerTouchTimer = null; }
                 headerTouchTimer = setTimeout(() => {
                     headerTouchTimer = null;
-                    // start window drag using the original touch event
                     startWindowDrag(e);
                 }, TOUCH_LONGPRESS_MS);
             }
@@ -379,10 +334,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (promoWindow) {
         const header = promoWindow.querySelector('.window-header');
         if (header) {
-            // Desktop mouse drag
             header.addEventListener('mousedown', startWindowDrag);
 
-            // Mobile: use long-press to initiate window drag to avoid interfering with scrolling
             let headerTouchTimer = null;
             let headerStartX = 0;
             let headerStartY = 0;
@@ -394,7 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (headerTouchTimer) { clearTimeout(headerTouchTimer); headerTouchTimer = null; }
                 headerTouchTimer = setTimeout(() => {
                     headerTouchTimer = null;
-                    // start window drag using the original touch event
                     startWindowDrag(e);
                 }, TOUCH_LONGPRESS_MS);
             }
@@ -420,23 +372,16 @@ document.addEventListener('DOMContentLoaded', () => {
         promoWindow.querySelector('.close-btn').addEventListener('click', () => closeWindow(promoWindow));
     }
 
-    // -------------------------------------------------------------------------
-    // --- LIGHTBOX Logic (Updated for Zoom and Navigation) ---
-    // -------------------------------------------------------------------------
-
     function applyZoom() {
-        // Set the new scale factor based on the current zoom percentage
         lightboxImage.style.transform = `scale(${currentZoom / 100})`;
         zoomLevelSpan.textContent = `${currentZoom}%`;
         
-        // Optional: Disable zoom buttons at min/max levels
         zoomOutBtn.disabled = (currentZoom <= ZOOM_STEP);
-        zoomInBtn.disabled = (currentZoom >= 200); // Max zoom set to 200%
+        zoomInBtn.disabled = (currentZoom >= 200);
     }
 
     function zoom(direction) {
         const newZoom = currentZoom + (direction * ZOOM_STEP);
-        // Clamp the zoom level between a minimum (e.g., 25%) and maximum (e.g., 200%)
         if (newZoom >= ZOOM_STEP && newZoom <= 200) {
             currentZoom = newZoom;
             applyZoom();
@@ -444,96 +389,84 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function navigate(direction) {
-        // Only navigate if we have images loaded
-        if (coverImages.length === 0) return;
+        const imageSet = currentImageSet === 'promo' ? promoImages : coverImages;
+        
+        if (imageSet.length === 0) return;
         
         let newIndex = currentImageIndex + direction;
         
-        // Wrap around navigation
         if (newIndex < 0) {
-            newIndex = coverImages.length - 1;
-        } else if (newIndex >= coverImages.length) {
+            newIndex = imageSet.length - 1;
+        } else if (newIndex >= imageSet.length) {
             newIndex = 0;
         }
 
-        // Only proceed if there's a valid index
-        if (newIndex >= 0 && newIndex < coverImages.length) {
+        if (newIndex >= 0 && newIndex < imageSet.length) {
             currentImageIndex = newIndex;
-            const newImageSrc = coverImages[currentImageIndex].src;
+            const newImageSrc = imageSet[currentImageIndex].src;
             lightboxImage.src = newImageSrc;
             
-            // Reset zoom when changing image
             currentZoom = 100;
             applyZoom();
         }
     }
 
-    function showLightbox(imageElement, index) {
+    function showLightbox(imageElement, index, imageSetType = 'cover') {
         currentImageIndex = index;
-        currentZoom = 100; // Reset zoom for new image
+        currentImageSet = imageSetType;
+        currentZoom = 100;
         
         lightboxImage.src = imageElement.src;
-        applyZoom(); // Apply the reset zoom state
+        applyZoom();
         
         lightbox.classList.remove('hidden');
     }
     
-    // Collect all cover images once DOM is loaded
-    // This must happen after the elements are guaranteed to be in the DOM
-    coverImages = Array.from(document.querySelectorAll('.cover-img'));
-    
-    // Also include the promo image if available
-    const promoImg = document.querySelector('.promo-img');
-    if (promoImg) {
-        coverImages.push(promoImg);
-    }
+    coverImages = Array.from(document.querySelectorAll('#folder-window .cover-img'));
+    promoImages = Array.from(document.querySelectorAll('#promo-window .promo-img'));
     
     coverImages.forEach((img, index) => {
         img.addEventListener('click', (e) => {
-            e.stopPropagation(); 
-            showLightbox(img, index);
+            e.stopPropagation();
+            showLightbox(img, index, 'cover');
         });
     });
 
-    // Attach zoom event listeners
+    promoImages.forEach((img, index) => {
+        img.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showLightbox(img, index, 'promo');
+        });
+    });
+
     if (zoomInBtn && zoomOutBtn) {
-        zoomInBtn.addEventListener('click', () => zoom(1)); // 1 for zoom in
-        zoomOutBtn.addEventListener('click', () => zoom(-1)); // -1 for zoom out
+        zoomInBtn.addEventListener('click', () => zoom(1));
+        zoomOutBtn.addEventListener('click', () => zoom(-1));
     }
     
-    // Attach navigation event listeners
     if (navPrevBtn && navNextBtn) {
         navPrevBtn.addEventListener('click', (e) => { 
-            e.stopPropagation(); // Prevent closing lightbox
+            e.stopPropagation();
             navigate(-1); 
         });
         navNextBtn.addEventListener('click', (e) => { 
-            e.stopPropagation(); // Prevent closing lightbox
+            e.stopPropagation();
             navigate(1); 
         });
     }
 
-
-    // Close lightbox on click, but ensure we don't close when clicking controls or image
     lightbox.addEventListener('click', (e) => {
-        // Check if the click target is the lightbox background itself
         if (e.target.id === 'lightbox') {
             lightbox.classList.add('hidden');
             setTimeout(() => {
                 lightboxImage.src = ''; 
-                lightboxImage.style.transform = 'none'; // Clean up transform
+                lightboxImage.style.transform = 'none';
             }, 300);
         }
-        // Note: Clicking lightbox-content (which holds the image/arrows) will NOT close it now.
     });
 
-
-    // -------------------------------------------------------------------------
-    // --- App Launch Logic (Uses single click with drag check) ---
-    // -------------------------------------------------------------------------
     icons.forEach(icon => {
         icon.addEventListener('click', (e) => {
-            // If dragging just finished, prevent the click action
             if (isDragging) {
                 isDragging = false; 
                 return; 
@@ -546,7 +479,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 folderWindow.style.display = 'flex';
                 folderWindow.style.zIndex = 1001; 
                 
-                // Ensure folder window position is centered if first time opening or off-screen
                 const windowRect = folderWindow.getBoundingClientRect();
                 if (windowRect.top < 0 || windowRect.left < 0 || windowRect.bottom > desktop.clientHeight || windowRect.right > desktop.clientWidth) {
                     folderWindow.style.top = '50%';
@@ -558,7 +490,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 promoWindow.style.display = 'flex';
                 promoWindow.style.zIndex = 1001; 
                 
-                // Ensure promo window position is centered if first time opening or off-screen
                 const windowRect = promoWindow.getBoundingClientRect();
                 if (windowRect.top < 0 || windowRect.left < 0 || windowRect.bottom > desktop.clientHeight || windowRect.right > desktop.clientWidth) {
                     promoWindow.style.top = '50%';
@@ -573,13 +504,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Prevent double-click from firing after single click delay
         icon.addEventListener('dblclick', (e) => {
              e.preventDefault();
         });
     });
     
-    // --- Dark/Light Mode Core Logic ---
     function switchMode(newMode) {
         desktop.className = '';
         desktop.classList.add(newMode);
@@ -591,7 +520,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const appId = getAppId(); 
         const savedMode = localStorage.getItem(`currentMode_${appId}`) || 'light-mode';
         switchMode(savedMode);
-        // Sync the toggle state visually if needed (not strictly required since the toggle is clickable)
     }
 
     applySavedMode();

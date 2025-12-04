@@ -5,7 +5,6 @@
     font-style: normal;
 }
 
-/* Wingdings font for special folder label */
 @font-face {
     font-family: 'WingdingsCustom';
     src: url('../Fonts/wingding.ttf') format('truetype');
@@ -14,9 +13,7 @@
     font-display: swap;
 }
 
-/* Basic Reset and Root Variables */
 :root {
-    /* Windows XP-like Colors */
     --xp-blue: #235d9f;
     --xp-green: #38b139;
     --xp-taskbar-bg: #2259a4;
@@ -24,13 +21,11 @@
     --xp-window-header: linear-gradient(to right, #235d9f, #3292d3);
     --xp-window-bg: #f0f0f0;
 
-    /* Desktop Colors */
     --desktop-bg-light: #ffffff;
     --desktop-bg-dark: #000000;
     --icon-label-light: #000000;
     --icon-label-dark: #ffffff;
     
-    /* Grid variables kept for reference but not used in visual display */
     --grid-color-light: rgba(0, 0, 0, 0.1);
     --grid-color-dark: rgba(255, 255, 255, 0.1);
     --grid-size: 100px; 
@@ -42,21 +37,17 @@ body {
     overflow: hidden;
     height: 100vh;
     font-size: 16px; 
-    /* Custom Cursor applied globally */
     cursor: url('../Images/cursor for website.png') 10 0, auto; 
 }
 
-/* --- MOBILE / VERTICAL PHONE STYLES --- */
 @media (max-width: 768px) {
-    /* Allow vertical scrolling on phones */
     body {
         overflow: auto;
         height: auto;
         font-size: 15px;
-        cursor: default; /* mobile uses native touch */
+        cursor: default;
     }
 
-    /* Make the desktop flow like a responsive grid instead of absolute positioned icons */
     #desktop {
         display: flex;
         flex-wrap: wrap;
@@ -66,7 +57,6 @@ body {
         height: auto;
     }
 
-    /* Icons become responsive tiles (ignore inline top/left on mobile) */
     .icon {
         position: relative !important;
         left: auto !important;
@@ -95,14 +85,12 @@ body {
         word-break: break-word;
     }
 
-    /* Target the special folder (data-label="???") and use WingdingsCustom */
     .icon[data-label="???"] .label {
         font-family: 'WingdingsCustom', 'VCR OSD Mono', sans-serif;
-        font-size: 18px; /* slightly larger for glyph clarity */
+        font-size: 18px;
         line-height: 1;
     }
 
-    /* App windows are modal-like and fit screen on mobile */
     .app-window {
         position: fixed;
         top: 8%;
@@ -124,7 +112,6 @@ body {
 
     .window-content { padding: 12px; }
 
-    /* Lightbox adjustments for phones */
     #lightbox {
         padding: 8px;
         align-items: center;
@@ -154,7 +141,6 @@ body {
         z-index: 10001;
     }
 
-    /* Keep the taskbar visible and compact on mobile */
     #taskbar {
         position: fixed;
         bottom: 0;
@@ -164,14 +150,12 @@ body {
         padding: 6px 12px;
     }
 
-    /* Slightly smaller lightbox image for mobile for smoother fit */
     #lightbox-image {
         max-width: 100%;
         max-height: 70vh;
     }
 }
 
-/* --- DESKTOP CONTAINER --- */
 #desktop {
     width: 100vw;
     height: 100vh;
@@ -180,10 +164,6 @@ body {
     position: relative; 
 }
 
-/* --- GRID OVERLAY (Visual Feedback on Drag) --- */
-/* This section was removed */
-
-/* Light Mode Styles */
 .light-mode {
     background-color: var(--desktop-bg-light);
 }
@@ -205,8 +185,6 @@ body {
     border: 1px solid #000;
 }
 
-
-/* Dark Mode Styles */
 .dark-mode {
     background-color: var(--desktop-bg-dark);
 }
@@ -241,8 +219,6 @@ body {
     border: 1px solid #fff;
 }
 
-
-/* --- ICONS (Full area is draggable) --- */
 .icon {
     display: flex;
     flex-direction: column;
@@ -254,17 +230,16 @@ body {
     position: absolute; 
     width: 100px; 
     transition: box-shadow 0.1s ease;
-    cursor: grab !important; /* Set grab cursor on the whole icon */
+    cursor: grab !important;
     pointer-events: all; 
 }
 
 .icon.dragging {
     z-index: 1000;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    cursor: grabbing !important; /* Visual feedback when actively dragging */
+    cursor: grabbing !important;
 }
 
-/* Ensure image and label don't block the icon click */
 .icon img, .icon .label {
     pointer-events: none; 
 }
@@ -276,8 +251,6 @@ body {
     margin-bottom: 8px;
 }
 
-
-/* --- APP WINDOW STYLES --- */
 .app-window {
     position: absolute;
     top: 50%;
@@ -356,7 +329,6 @@ body {
     font-size: 12px;
 }
 
-/* --- FILE LIST & COVER IMAGES --- */
 .file-list {
     display: flex;
     flex-wrap: wrap;
@@ -412,8 +384,6 @@ body {
     word-break: break-word;
 }
 
-
-/* --- LIGHTBOX STYLES (Adjusted) --- */
 #lightbox {
     position: fixed;
     top: 0;
@@ -424,7 +394,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    flex-direction: column; /* Allows image and controls to stack */
+    flex-direction: column;
     padding: 20px;
     z-index: 9999;
     opacity: 1;
@@ -441,14 +411,13 @@ body {
     max-width: 90%;
     max-height: 90%;
     position: relative;
-    display: flex; /* To position arrows next to the image */
+    display: flex;
     align-items: center;
     justify-content: center;
-    /* Important: Must allow clicking through to nav buttons */
     pointer-events: none; 
 }
 #lightbox-content > * {
-    pointer-events: all; /* Re-enable pointer events for children */
+    pointer-events: all;
 }
 
 
@@ -459,12 +428,11 @@ body {
     max-height: 100vh;
     box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
     object-fit: contain;
-    transition: transform 0.2s ease-out; /* Smooth zoom transition */
+    transition: transform 0.2s ease-out;
     cursor: pointer; 
     cursor: url('../Images/cursor for website.png') 10 0, auto !important; 
 }
 
-/* --- LIGHTBOX NAVIGATION ARROWS --- */
 .lightbox-nav-btn {
     position: absolute;
     top: 50%;
@@ -486,14 +454,13 @@ body {
 }
 
 #nav-prev {
-    left: -60px; /* Position outside the main content block */
+    left: -60px;
 }
 
 #nav-next {
-    right: -60px; /* Position outside the main content block */
+    right: -60px;
 }
 
-/* --- LIGHTBOX ZOOM CONTROLS --- */
 #lightbox-controls {
     margin-top: 20px;
     display: flex;
@@ -540,8 +507,6 @@ body {
     text-align: center;
 }
 
-
-/* --- TASKBAR (Unchanged) --- */
 #taskbar {
     position: fixed;
     bottom: 0;
@@ -557,7 +522,6 @@ body {
     z-index: 2000; 
 }
 
-/* --- TOGGLE SWITCH STYLES (Unchanged) --- */
 .mode-toggle {
     width: 60px; 
     height: 30px; 
