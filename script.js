@@ -42,12 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let touchInitialY = 0;
     const TOUCH_LONGPRESS_MS = 300;
     const TOUCH_MOVE_THRESHOLD = 10;
-    
     let windowDragActive = false;
     let windowInitialX, windowInitialY;
     let windowOffsetX, windowOffsetY;
     let activeWindow = null;
-
     function getAppId() {
         return typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
     }
@@ -150,11 +148,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!activeDrag) return;
 
         activeDrag.classList.remove('dragging');
-        
         if (isDragging) {
             saveIconPosition(activeDrag);
         }
-
         activeDrag = null;
         
         document.removeEventListener('mousemove', drag);
@@ -162,18 +158,18 @@ document.addEventListener('DOMContentLoaded', () => {
         document.removeEventListener('touchmove', drag);
         document.removeEventListener('touchend', dragEnd);
     }
-    
     function updateForMobileLayout() {
         const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        icons.forEach(icon => {
+            icon.removeEventListener('mousedown', dragStart);
+            icon.removeEventListener('touchstart', dragStart);
+            icon.removeEventListener('touchstart', touchIconStart);
+            icon.removeEventListener('touchmove', touchIconMove);
+            icon.removeEventListener('touchend', touchIconEnd);
+        });
         if (isMobile) {
             desktop.classList.add('mobile-layout');
             icons.forEach(icon => {
-                icon.removeEventListener('mousedown', dragStart);
-                icon.removeEventListener('touchstart', dragStart);
-                icon.removeEventListener('touchstart', touchIconStart);
-                icon.removeEventListener('touchmove', touchIconMove);
-                icon.removeEventListener('touchend', touchIconEnd);
-
                 icon.addEventListener('touchstart', touchIconStart, { passive: false });
                 icon.addEventListener('touchmove', touchIconMove, { passive: false });
                 icon.addEventListener('touchend', touchIconEnd);
@@ -182,11 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             desktop.classList.remove('mobile-layout');
             icons.forEach(icon => {
-                icon.removeEventListener('mousedown', dragStart);
-                icon.removeEventListener('touchstart', dragStart);
-                icon.removeEventListener('touchstart', touchIconStart);
-                icon.removeEventListener('touchmove', touchIconMove);
-                icon.removeEventListener('touchend', touchIconEnd);
                 icon.addEventListener('mousedown', dragStart);
                 icon.addEventListener('touchstart', dragStart, { passive: false });
             });
@@ -198,7 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(window._mobileLayoutTimer);
         window._mobileLayoutTimer = setTimeout(updateForMobileLayout, 150);
     });
-
     function touchIconStart(e) {
         if (!e.touches || e.touches.length > 1) return;
         const icon = e.target.closest('.icon');
@@ -231,21 +221,17 @@ document.addEventListener('DOMContentLoaded', () => {
             touchTimer = null;
         }
     }
-
     function startWindowDrag(e) {
         const windowHeader = e.target.closest('.window-header');
         if (!windowHeader || (e.type === 'mousedown' && e.button !== 0)) return; 
 
         e.preventDefault();
         windowDragActive = true;
-        
         activeWindow = windowHeader.closest('.app-window');
         if (!activeWindow) return;
-        
         const coords = getClientCoords(e);
         windowInitialX = coords.x;
         windowInitialY = coords.y;
-        
         windowOffsetX = coords.x - activeWindow.getBoundingClientRect().left;
         windowOffsetY = coords.y - activeWindow.getBoundingClientRect().top;
 
@@ -254,9 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('touchmove', dragWindow, { passive: false });
         document.addEventListener('touchend', endWindowDrag);
 
-        activeWindow.style.transition = 'none'; 
+        activeWindow.style.transition = 'none';
     }
-
     function dragWindow(e) {
         if (!windowDragActive || !activeWindow) return;
 
@@ -268,9 +253,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         activeWindow.style.left = newX + 'px';
         activeWindow.style.top = newY + 'px';
-        activeWindow.style.transform = 'none'; 
+        activeWindow.style.transform = 'none';
     }
-
     function endWindowDrag() {
         if (!windowDragActive) return;
 
@@ -285,101 +269,60 @@ document.addEventListener('DOMContentLoaded', () => {
         document.removeEventListener('touchmove', dragWindow);
         document.removeEventListener('touchend', endWindowDrag);
     }
-    
     function closeWindow(windowElement) {
         windowElement.style.display = 'none';
     }
+    function setupWindowHeaderDragHandlers(windowElement) {
+        const header = windowElement.querySelector('.window-header');
+        if (!header) return;
+        header.addEventListener('mousedown', startWindowDrag);
+        let headerTouchTimer = null;
+        let headerStartX = 0;
+        let headerStartY = 0;
+
+        function headerTouchStart(e) {
+            if (!e.touches || e.touches.length > 1) return;
+            headerStartX = e.touches[0].clientX;
+            headerStartY = e.touches[0].clientY;
+            if (headerTouchTimer) { clearTimeout(headerTouchTimer); headerTouchTimer = null; }
+            headerTouchTimer = setTimeout(() => {
+                headerTouchTimer = null;
+                startWindowDrag(e);
+            }, TOUCH_LONGPRESS_MS);
+        }
+
+        function headerTouchMove(e) {
+            if (!headerTouchTimer || !e.touches || e.touches.length > 1) return;
+            const mx = e.touches[0].clientX;
+            const my = e.touches[0].clientY;
+            if (Math.abs(mx - headerStartX) > TOUCH_MOVE_THRESHOLD || Math.abs(my - headerStartY) > TOUCH_MOVE_THRESHOLD) {
+                clearTimeout(headerTouchTimer);
+                headerTouchTimer = null;
+            }
+        }
+
+        function headerTouchEnd(e) {
+            if (headerTouchTimer) { clearTimeout(headerTouchTimer); headerTouchTimer = null; }
+        }
+
+        header.addEventListener('touchstart', headerTouchStart, { passive: false });
+        header.addEventListener('touchmove', headerTouchMove, { passive: false });
+        header.addEventListener('touchend', headerTouchEnd);
+        windowElement.querySelector('.close-btn').addEventListener('click', () => closeWindow(windowElement));
+    }
     
     if (folderWindow) {
-        const header = folderWindow.querySelector('.window-header');
-        if (header) {
-            header.addEventListener('mousedown', startWindowDrag);
-
-            let headerTouchTimer = null;
-            let headerStartX = 0;
-            let headerStartY = 0;
-
-            function headerTouchStart(e) {
-                if (!e.touches || e.touches.length > 1) return;
-                headerStartX = e.touches[0].clientX;
-                headerStartY = e.touches[0].clientY;
-                if (headerTouchTimer) { clearTimeout(headerTouchTimer); headerTouchTimer = null; }
-                headerTouchTimer = setTimeout(() => {
-                    headerTouchTimer = null;
-                    startWindowDrag(e);
-                }, TOUCH_LONGPRESS_MS);
-            }
-
-            function headerTouchMove(e) {
-                if (!headerTouchTimer || !e.touches || e.touches.length > 1) return;
-                const mx = e.touches[0].clientX;
-                const my = e.touches[0].clientY;
-                if (Math.abs(mx - headerStartX) > TOUCH_MOVE_THRESHOLD || Math.abs(my - headerStartY) > TOUCH_MOVE_THRESHOLD) {
-                    clearTimeout(headerTouchTimer);
-                    headerTouchTimer = null;
-                }
-            }
-
-            function headerTouchEnd(e) {
-                if (headerTouchTimer) { clearTimeout(headerTouchTimer); headerTouchTimer = null; }
-            }
-
-            header.addEventListener('touchstart', headerTouchStart, { passive: false });
-            header.addEventListener('touchmove', headerTouchMove, { passive: false });
-            header.addEventListener('touchend', headerTouchEnd);
-        }
-        folderWindow.querySelector('.close-btn').addEventListener('click', () => closeWindow(folderWindow));
+        setupWindowHeaderDragHandlers(folderWindow);
     }
-
     if (promoWindow) {
-        const header = promoWindow.querySelector('.window-header');
-        if (header) {
-            header.addEventListener('mousedown', startWindowDrag);
-
-            let headerTouchTimer = null;
-            let headerStartX = 0;
-            let headerStartY = 0;
-
-            function headerTouchStart(e) {
-                if (!e.touches || e.touches.length > 1) return;
-                headerStartX = e.touches[0].clientX;
-                headerStartY = e.touches[0].clientY;
-                if (headerTouchTimer) { clearTimeout(headerTouchTimer); headerTouchTimer = null; }
-                headerTouchTimer = setTimeout(() => {
-                    headerTouchTimer = null;
-                    startWindowDrag(e);
-                }, TOUCH_LONGPRESS_MS);
-            }
-
-            function headerTouchMove(e) {
-                if (!headerTouchTimer || !e.touches || e.touches.length > 1) return;
-                const mx = e.touches[0].clientX;
-                const my = e.touches[0].clientY;
-                if (Math.abs(mx - headerStartX) > TOUCH_MOVE_THRESHOLD || Math.abs(my - headerStartY) > TOUCH_MOVE_THRESHOLD) {
-                    clearTimeout(headerTouchTimer);
-                    headerTouchTimer = null;
-                }
-            }
-
-            function headerTouchEnd(e) {
-                if (headerTouchTimer) { clearTimeout(headerTouchTimer); headerTouchTimer = null; }
-            }
-
-            header.addEventListener('touchstart', headerTouchStart, { passive: false });
-            header.addEventListener('touchmove', headerTouchMove, { passive: false });
-            header.addEventListener('touchend', headerTouchEnd);
-        }
-        promoWindow.querySelector('.close-btn').addEventListener('click', () => closeWindow(promoWindow));
+        setupWindowHeaderDragHandlers(promoWindow);
     }
-
     function applyZoom() {
         lightboxImage.style.transform = `scale(${currentZoom / 100})`;
         zoomLevelSpan.textContent = `${currentZoom}%`;
-        
         zoomOutBtn.disabled = (currentZoom <= ZOOM_STEP);
         zoomInBtn.disabled = (currentZoom >= 200);
     }
-
     function zoom(direction) {
         const newZoom = currentZoom + (direction * ZOOM_STEP);
         if (newZoom >= ZOOM_STEP && newZoom <= 200) {
@@ -387,41 +330,31 @@ document.addEventListener('DOMContentLoaded', () => {
             applyZoom();
         }
     }
-
     function navigate(direction) {
         const imageSet = currentImageSet === 'promo' ? promoImages : coverImages;
-        
         if (imageSet.length === 0) return;
-        
         let newIndex = currentImageIndex + direction;
-        
         if (newIndex < 0) {
             newIndex = imageSet.length - 1;
         } else if (newIndex >= imageSet.length) {
             newIndex = 0;
         }
-
         if (newIndex >= 0 && newIndex < imageSet.length) {
             currentImageIndex = newIndex;
             const newImageSrc = imageSet[currentImageIndex].src;
             lightboxImage.src = newImageSrc;
-            
             currentZoom = 100;
             applyZoom();
         }
     }
-
     function showLightbox(imageElement, index, imageSetType = 'cover') {
         currentImageIndex = index;
         currentImageSet = imageSetType;
         currentZoom = 100;
-        
         lightboxImage.src = imageElement.src;
         applyZoom();
-        
         lightbox.classList.remove('hidden');
     }
-    
     coverImages = Array.from(document.querySelectorAll('#folder-window .cover-img'));
     promoImages = Array.from(document.querySelectorAll('#promo-window .promo-img'));
     
@@ -431,54 +364,37 @@ document.addEventListener('DOMContentLoaded', () => {
             showLightbox(img, index, 'cover');
         });
     });
-
     promoImages.forEach((img, index) => {
         img.addEventListener('click', (e) => {
             e.stopPropagation();
             showLightbox(img, index, 'promo');
         });
     });
-
-    if (zoomInBtn && zoomOutBtn) {
-        zoomInBtn.addEventListener('click', () => zoom(1));
-        zoomOutBtn.addEventListener('click', () => zoom(-1));
-    }
-    
-    if (navPrevBtn && navNextBtn) {
-        navPrevBtn.addEventListener('click', (e) => { 
-            e.stopPropagation();
-            navigate(-1); 
-        });
-        navNextBtn.addEventListener('click', (e) => { 
-            e.stopPropagation();
-            navigate(1); 
-        });
-    }
-
+    if (zoomInBtn) zoomInBtn.addEventListener('click', () => zoom(1));
+    if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => zoom(-1));
+    if (navPrevBtn) navPrevBtn.addEventListener('click', (e) => { e.stopPropagation(); navigate(-1); });
+    if (navNextBtn) navNextBtn.addEventListener('click', (e) => { e.stopPropagation(); navigate(1); });
     lightbox.addEventListener('click', (e) => {
         if (e.target.id === 'lightbox') {
             lightbox.classList.add('hidden');
             setTimeout(() => {
-                lightboxImage.src = ''; 
+                lightboxImage.src = '';
                 lightboxImage.style.transform = 'none';
             }, 300);
         }
     });
-
     icons.forEach(icon => {
         icon.addEventListener('click', (e) => {
             if (isDragging) {
-                isDragging = false; 
-                return; 
+                isDragging = false;
+                return;
             }
-            
             const label = icon.dataset.label;
             const url = iconLinks[label];
 
             if (label === 'WHO_ARE_YOU_? mxtp_shoot') {
                 folderWindow.style.display = 'flex';
-                folderWindow.style.zIndex = 1001; 
-                
+                folderWindow.style.zIndex = 1001;
                 const windowRect = folderWindow.getBoundingClientRect();
                 if (windowRect.top < 0 || windowRect.left < 0 || windowRect.bottom > desktop.clientHeight || windowRect.right > desktop.clientWidth) {
                     folderWindow.style.top = '50%';
@@ -488,8 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } else if (label === '???') {
                 promoWindow.style.display = 'flex';
-                promoWindow.style.zIndex = 1001; 
-                
+                promoWindow.style.zIndex = 1001;
                 const windowRect = promoWindow.getBoundingClientRect();
                 if (windowRect.top < 0 || windowRect.left < 0 || windowRect.bottom > desktop.clientHeight || windowRect.right > desktop.clientWidth) {
                     promoWindow.style.top = '50%';
@@ -508,23 +423,19 @@ document.addEventListener('DOMContentLoaded', () => {
              e.preventDefault();
         });
     });
-    
     function switchMode(newMode) {
         desktop.className = '';
         desktop.classList.add(newMode);
-        const appId = getAppId(); 
-        localStorage.setItem(`currentMode_${appId}`, newMode); 
+        const appId = getAppId();
+        localStorage.setItem(`currentMode_${appId}`, newMode);
     }
-    
     function applySavedMode() {
-        const appId = getAppId(); 
+        const appId = getAppId();
         const savedMode = localStorage.getItem(`currentMode_${appId}`) || 'light-mode';
         switchMode(savedMode);
     }
-
     applySavedMode();
-    loadIconPositions(); 
-    
+    loadIconPositions();
     toggles.forEach(toggle => {
         toggle.addEventListener('click', () => {
             if (desktop.classList.contains('light-mode')) {
